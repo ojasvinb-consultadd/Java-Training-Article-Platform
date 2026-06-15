@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: article-platform
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/article_db
+    username: article_user
+    password: article_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate #only checks if db schema matches expectations, doesnt edit
+    show-sql: true #prints sql in terminal
+
+    properties:
+      hibernate:
+        format_sql: true # sql logs readable
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration #migration file folder
+
+  devtools:
+    restart:
+      exclude: db.migration

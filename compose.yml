@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17
+
+    container_name: article-postgres
+
+    environment:
+      POSTGRES_DB: article_db
+      POSTGRES_USER: article_user
+      POSTGRES_PASSWORD: article_password
+
+    volumes:
+      - POSTGRES_DATA:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+#  app:
+#    build:
+#      context: .
+#
+#    container_name: article-app
+#
+#    ports:
+#      - "8080:8080"
+#
+#    depends_on:
+#      - postgres
+#
+#    environment:
+#      SPRINGBOOT_DATASOURCE_URL: jdbc:postgresql://postgres:5432/article_db
+#      SPRING_DATASOURCE_USERNAME: article_user
+#      SPRING_DATASOURCE_PASSWORD: password
+
+volumes:
+  POSTGRES_DATA:
