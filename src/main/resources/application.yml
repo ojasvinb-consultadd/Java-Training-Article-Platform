@@ -24,3 +24,9 @@ spring:
   devtools:
     restart:
       exclude: db.migration
+
+  logging:
+    level: INFO
+
+    
+
