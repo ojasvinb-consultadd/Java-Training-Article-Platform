@@ -38,7 +38,7 @@ public class Article {
 
     //don't load the data from the relationship when loading user
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id")
+    @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
     @CreationTimestamp

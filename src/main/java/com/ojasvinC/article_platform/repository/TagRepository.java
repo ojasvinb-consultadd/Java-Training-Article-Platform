@@ -9,6 +9,4 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
 
     // Used when creating articles and reusing existing tags
     Optional<Tag> findByName(String name);
-
-    boolean existsByName(String name);
 }

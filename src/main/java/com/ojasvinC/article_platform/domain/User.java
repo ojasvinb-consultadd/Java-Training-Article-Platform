@@ -17,13 +17,13 @@ public class User {
     private long id;
 
     @Column(nullable = false, unique = true)
-    private String username;
+    private String name;
 
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, name = "password_hash")
-    private String passwordHash;
+    @Column(nullable = false, name = "google_id")
+    private String googleId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

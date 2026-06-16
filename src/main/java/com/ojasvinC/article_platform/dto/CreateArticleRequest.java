@@ -11,7 +11,9 @@ public record CreateArticleRequest(
         String title,
 
         @NotBlank
-        String Body,
+        String body,
+
+        Long authorId,
 
         Set<String> tags
 ) {

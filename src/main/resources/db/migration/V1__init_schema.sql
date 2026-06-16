@@ -1,8 +1,8 @@
 CREATE TABLE users (
         id BIGSERIAL PRIMARY KEY,
-        username VARCHAR(50) NOT NULL UNIQUE,
+        google_id VARCHAR(255) NOT NULL UNIQUE,
+        name VARCHAR(50) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
