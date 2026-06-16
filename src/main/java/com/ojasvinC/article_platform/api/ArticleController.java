@@ -47,7 +47,7 @@ public class ArticleController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT) // 204 means successful but no response body
+    @ResponseStatus(HttpStatus.NO_CONTENT) //204 means successful but no response body
     public void deleteArticle(
             @PathVariable Long id
     ) {

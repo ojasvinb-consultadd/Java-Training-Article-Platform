@@ -10,7 +10,6 @@ import com.ojasvinC.article_platform.exception.NotFoundException;
 import com.ojasvinC.article_platform.repository.ArticleRepository;
 import com.ojasvinC.article_platform.repository.TagRepository;
 import com.ojasvinC.article_platform.repository.UserRepository;
-import org.aspectj.weaver.ast.Not;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -46,29 +45,32 @@ public class ArticleService {
         );
     }
 
+    private Set<Tag> resolveTags(Set<String> tags){
+        Set<Tag> updatedTags = new HashSet<>();
+
+        for(String tag : tags){
+            Tag newtag = tagRepository.findByName(tag)
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setName(tag);
+
+                        return tagRepository.save(newTag);
+                    });
+            updatedTags.add(newtag);
+        }
+        return updatedTags;
+    }
+
     public ArticleResponse createArticle(CreateArticleRequest request){
 
         User author = userRepository.findById(request.authorId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        Set<Tag> tags = new HashSet<>();
-
-        for (String tagName : request.tags()) {
-            Tag tag = tagRepository.findByName(tagName)
-                    .orElseGet(() -> {
-                        Tag newTag = new Tag();
-                        newTag.setName(tagName);
-
-                        return tagRepository.save(newTag);
-                    });
-            tags.add(tag);
-        }
-
         Article article = new Article();
         article.setTitle(request.title());
         article.setBody(request.body());
         article.setAuthor(author);
-        article.setTags(tags);
+        article.setTags(resolveTags(request.tags()));
         Article savedArticle = articleRepository.save(article);
 
         return mapToArticleResponse(savedArticle);
@@ -113,18 +115,7 @@ public class ArticleService {
         }
 
         if (request.tags() != null){
-            Set<Tag> updatedTags = new HashSet<>();
-
-            for(String tag : request.tags()){
-                Tag newtag = tagRepository.findByName(tag)
-                        .orElseGet(() -> {
-                            Tag newTag = new Tag();
-                            newTag.setName(tag);
-
-                            return tagRepository.save(newTag);
-                        });
-                updatedTags.add(newtag);
-            }
+            Set<Tag> updatedTags = resolveTags(request.tags());
             article.setTags(updatedTags);
         }
 
@@ -140,7 +131,14 @@ public class ArticleService {
                     return new NotFoundException("Article not Found");
                 });
 
-        article.setTitle("Deleted : " +article.getTitle());
+        Set<Tag> newtags =  article.getTags();
+
+        Tag deleted = new Tag();
+        deleted.setName("Deleted");
+
+        newtags.add(deleted);
+
+        article.setTitle(article.getTitle());
 
         article.setDeletedAt(LocalDateTime.now());
 
