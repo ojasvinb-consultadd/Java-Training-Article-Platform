@@ -59,7 +59,12 @@ public class ArticleController {
         articleService.deleteArticle(id, principal);
     }
 
-
+    @GetMapping("/search")
+    public List<ArticleResponse> searchArticles(
+            @RequestParam String q
+    ){
+        return articleService.searchArticles(q);
+    }
 
 
 }

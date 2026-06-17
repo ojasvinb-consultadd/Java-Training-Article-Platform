@@ -164,6 +164,17 @@ public class ArticleService {
         articleRepository.save(article);
     }
 
+    public List<ArticleResponse> searchArticles(String q){
+        String cleaned = q.trim();
+
+        String query = String.join(" & ", cleaned.split("\\s+"));
+
+        return articleRepository.searchByText(query)
+                .stream()
+                .map(this::mapToArticleResponse)
+                .toList();
+
+    }
 
 
 }
