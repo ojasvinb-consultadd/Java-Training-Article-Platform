@@ -13,8 +13,6 @@ public record CreateArticleRequest(
         @NotBlank
         String body,
 
-        Long authorId,
-
         Set<String> tags
 ) {
 }

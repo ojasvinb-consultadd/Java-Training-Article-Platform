@@ -1,11 +1,13 @@
 package com.ojasvinC.article_platform.api;
 
+import com.ojasvinC.article_platform.config.CustomUserPrincipal;
 import com.ojasvinC.article_platform.dto.ArticleResponse;
 import com.ojasvinC.article_platform.dto.CreateArticleRequest;
 import com.ojasvinC.article_platform.dto.UpdateArticleRequest;
 import com.ojasvinC.article_platform.service.ArticleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,9 +24,10 @@ public class ArticleController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ArticleResponse createArticle(
-            @Valid @RequestBody CreateArticleRequest request
+            @Valid @RequestBody CreateArticleRequest request,
+            @AuthenticationPrincipal CustomUserPrincipal principal
             ) {
-        return articleService.createArticle(request);
+        return articleService.createArticle(request, principal);
     }
 
     @GetMapping("/{id}")
@@ -41,17 +44,19 @@ public class ArticleController {
     @PatchMapping("/{id}")
     public ArticleResponse updateArticle(
             @PathVariable Long id,
-            @RequestBody UpdateArticleRequest request
+            @RequestBody UpdateArticleRequest request,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        return articleService.updateArticle(id, request);
+        return articleService.updateArticle(id, request, principal);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT) //204 means successful but no response body
     public void deleteArticle(
-            @PathVariable Long id
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        articleService.deleteArticle(id);
+        articleService.deleteArticle(id, principal);
     }
 
 

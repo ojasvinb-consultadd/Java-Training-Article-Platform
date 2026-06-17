@@ -16,6 +16,13 @@ public class TestController {
         return "Login successful";
     }
 
+    @GetMapping("/logged-out")
+    public String loggedOut() {
+        // This endpoint is hit ONLY after /logout
+        // You can now decide what to do next
+        return "Logged out successfully. Please login again.";
+    }
+
     @GetMapping("/me")
     public Map<String, Object> me(
             @AuthenticationPrincipal CustomUserPrincipal user

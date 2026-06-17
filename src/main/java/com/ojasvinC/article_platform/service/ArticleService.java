@@ -1,11 +1,13 @@
 package com.ojasvinC.article_platform.service;
 
+import com.ojasvinC.article_platform.config.CustomUserPrincipal;
 import com.ojasvinC.article_platform.domain.Article;
 import com.ojasvinC.article_platform.domain.Tag;
 import com.ojasvinC.article_platform.domain.User;
 import com.ojasvinC.article_platform.dto.ArticleResponse;
 import com.ojasvinC.article_platform.dto.CreateArticleRequest;
 import com.ojasvinC.article_platform.dto.UpdateArticleRequest;
+import com.ojasvinC.article_platform.exception.ForbiddenException;
 import com.ojasvinC.article_platform.exception.NotFoundException;
 import com.ojasvinC.article_platform.repository.ArticleRepository;
 import com.ojasvinC.article_platform.repository.TagRepository;
@@ -61,9 +63,11 @@ public class ArticleService {
         return updatedTags;
     }
 
-    public ArticleResponse createArticle(CreateArticleRequest request){
+    public ArticleResponse createArticle(CreateArticleRequest request, CustomUserPrincipal principal){
 
-        User author = userRepository.findById(request.authorId())
+        Long authorId = principal.getId();
+
+        User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         Article article = new Article();
@@ -93,18 +97,36 @@ public class ArticleService {
                 .toList();
     }
 
+    // this method is already protected as in security config we have set
+    // that only users with role ADMIN can access /admin endpoints
     public List<ArticleResponse> getAllArticlesIncludingDeleted() {
+
         return articleRepository.findAllIncludingDeleted()
                 .stream()
                 .map(this::mapToArticleResponse)
                 .toList();
     }
 
-    public ArticleResponse updateArticle(Long id, UpdateArticleRequest request){
+    public ArticleResponse updateArticle(Long id, UpdateArticleRequest request, CustomUserPrincipal principal){
+
+
         Article article = articleRepository.findById(id)
                 .orElseThrow(()-> {
                     return new NotFoundException("Article not Found");
                 });
+
+        if (article.getDeletedAt() != null) {
+            throw new NotFoundException("Article not found");
+        }
+
+        Long currentUserId = principal.getId();
+
+        boolean isOwner = article.getAuthor().getId().equals(currentUserId);
+        boolean isAdmin = principal.getRole().name().equals("ADMIN");
+
+        if (!isOwner) { //add && !isAdmin to allow admin to edit articles
+            throw new ForbiddenException("Not authorized to update this article");
+        }
 
         if (request.title() != null){
             article.setTitle(request.title());
@@ -125,23 +147,20 @@ public class ArticleService {
     }
 
 
-    public void deleteArticle(Long id){
+    public void deleteArticle(Long id, CustomUserPrincipal principal){
         Article article = articleRepository.findById(id)
-                .orElseThrow(()-> {
-                    return new NotFoundException("Article not Found");
-                });
+                .orElseThrow(() -> new NotFoundException("Article not Found"));
 
-        Set<Tag> newtags =  article.getTags();
+        Long currentUserId = principal.getId();
 
-        Tag deleted = new Tag();
-        deleted.setName("Deleted");
+        boolean isOwner = article.getAuthor().getId().equals(currentUserId);
+        boolean isAdmin = principal.getRole().name().equals("ADMIN");
 
-        newtags.add(deleted);
-
-        article.setTitle(article.getTitle());
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("Not authorized to delete this article");
+        }
 
         article.setDeletedAt(LocalDateTime.now());
-
         articleRepository.save(article);
     }
 
