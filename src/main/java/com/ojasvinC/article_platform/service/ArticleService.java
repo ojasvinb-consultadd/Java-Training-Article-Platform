@@ -164,13 +164,28 @@ public class ArticleService {
         articleRepository.save(article);
     }
 
-    public List<ArticleResponse> searchArticles(String q){
-        String cleaned = q.trim();
+    public List<ArticleResponse> searchArticles(String q, Set<String> tags){
+        boolean hasQuery = q != null && !q.trim().isEmpty();
+        boolean hasTags = tags !=null && !tags.isEmpty();
 
-        String query = String.join(" & ", cleaned.split("\\s+"));
+        if (!hasTags && !hasQuery) {
+            return articleRepository.findAllByOrderByCreatedAtDesc()
+                    .stream()
+                    .map(this::mapToArticleResponse)
+                    .toList();
+        }
 
-        return articleRepository.searchByText(query)
-                .stream()
+        String ts_query = null;
+
+        if(hasQuery){
+            ts_query = String.join(" & ",q.trim().split("\\s+"));
+        }
+
+        return articleRepository.searchHybrid(
+                ts_query,
+                hasTags ? new ArrayList<>(tags) : Collections.emptyList(),
+                hasTags ? tags.size() : 0
+        ).stream()
                 .map(this::mapToArticleResponse)
                 .toList();
 

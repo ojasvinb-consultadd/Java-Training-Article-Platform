@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/articles")
@@ -61,9 +62,10 @@ public class ArticleController {
 
     @GetMapping("/search")
     public List<ArticleResponse> searchArticles(
-            @RequestParam String q
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Set<String> tags
     ){
-        return articleService.searchArticles(q);
+        return articleService.searchArticles(q,tags);
     }
 
 
