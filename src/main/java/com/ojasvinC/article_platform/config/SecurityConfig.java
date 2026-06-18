@@ -47,8 +47,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/articles")
                         .permitAll()
-
                         .requestMatchers(HttpMethod.GET, "/articles/*")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/articles/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/articles/search")
                         .permitAll()
 
                         // Public endpoints (no authentication required)

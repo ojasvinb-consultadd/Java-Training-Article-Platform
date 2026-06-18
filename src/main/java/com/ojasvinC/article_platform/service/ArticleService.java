@@ -12,12 +12,17 @@ import com.ojasvinC.article_platform.exception.NotFoundException;
 import com.ojasvinC.article_platform.repository.ArticleRepository;
 import com.ojasvinC.article_platform.repository.TagRepository;
 import com.ojasvinC.article_platform.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ArticleService {
 
@@ -63,6 +68,17 @@ public class ArticleService {
         return updatedTags;
     }
 
+    public static List<String> normalizeTags(Set<String> tags) {
+        if (tags == null) return List.of(); // no tags → empty immutable list
+
+        return tags.stream()
+                .sorted() // ensures stable ordering for cache key consistency
+                .toList(); // converts Set → List (ordered)
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "search", allEntries = true)
+    })
     public ArticleResponse createArticle(CreateArticleRequest request, CustomUserPrincipal principal){
 
         Long authorId = principal.getId();
@@ -80,12 +96,29 @@ public class ArticleService {
         return mapToArticleResponse(savedArticle);
     }
 
-
+    // cache name = "articles"
+    // key = the method parameter "id"
+    @Cacheable(value = "articles", key="#id")
     public ArticleResponse getArticleById(Long id){
-        Article article = articleRepository.findById(id)
-                .orElseThrow(()-> {
-                    return new NotFoundException("Article not Found");
+//        Article article = articleRepository.findById(id)
+//                .orElseThrow(
+//                        () ->
+//                        {
+//                            return new NotFoundException("article not found")
+//                        });
+
+
+        Article article = articleRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> {
+                    log.info("Article {} does not exist", id);
+                    return new NotFoundException("Article not found");
                 });
+
+        if (article.getDeletedAt() != null) {
+            log.info("Article {} exists but is soft deleted", id);
+            throw new NotFoundException("Article not found");
+        }
+
         return mapToArticleResponse(article);
     }
 
@@ -107,22 +140,28 @@ public class ArticleService {
                 .toList();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "articles", key = "#id"),
+            @CacheEvict(value = "search", allEntries = true)
+    })
     public ArticleResponse updateArticle(Long id, UpdateArticleRequest request, CustomUserPrincipal principal){
 
 
-        Article article = articleRepository.findById(id)
-                .orElseThrow(()-> {
-                    return new NotFoundException("Article not Found");
+        Article article = articleRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> {
+                    log.info("Article {} does not exist", id);
+                    return new NotFoundException("Article not found");
                 });
 
         if (article.getDeletedAt() != null) {
+            log.info("Article {} exists but is soft deleted", id);
             throw new NotFoundException("Article not found");
         }
 
         Long currentUserId = principal.getId();
 
         boolean isOwner = article.getAuthor().getId().equals(currentUserId);
-        boolean isAdmin = principal.getRole().name().equals("ADMIN");
+//        boolean isAdmin = principal.getRole().name().equals("ADMIN");
 
         if (!isOwner) { //add && !isAdmin to allow admin to edit articles
             throw new ForbiddenException("Not authorized to update this article");
@@ -146,7 +185,10 @@ public class ArticleService {
         return mapToArticleResponse(updatedArticle);
     }
 
-
+    @Caching(evict = {
+            @CacheEvict(value = "articles", key = "#id"),
+            @CacheEvict(value = "search", allEntries = true)
+    })
     public void deleteArticle(Long id, CustomUserPrincipal principal){
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Article not Found"));
@@ -164,9 +206,18 @@ public class ArticleService {
         articleRepository.save(article);
     }
 
+    @Cacheable(
+            value = "search",  // separate cache region
+            key = """
+                    #q + '-' +
+                        T(com.ojasvinC.article_platform.service.ArticleService)
+                            .normalizeTags(#tags == null ? new java.util.HashSet() : #tags).toString()
+                    """
+    )
     public List<ArticleResponse> searchArticles(String q, Set<String> tags){
         boolean hasQuery = q != null && !q.trim().isEmpty();
         boolean hasTags = tags !=null && !tags.isEmpty();
+
 
         if (!hasTags && !hasQuery) {
             return articleRepository.findAllByOrderByCreatedAtDesc()
