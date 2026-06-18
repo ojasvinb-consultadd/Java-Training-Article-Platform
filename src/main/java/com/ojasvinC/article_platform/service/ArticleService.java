@@ -232,13 +232,17 @@ public class ArticleService {
             ts_query = String.join(" & ",q.trim().split("\\s+"));
         }
 
-        return articleRepository.searchHybrid(
-                ts_query,
-                hasTags ? new ArrayList<>(tags) : Collections.emptyList(),
-                hasTags ? tags.size() : 0
-        ).stream()
-                .map(this::mapToArticleResponse)
-                .toList();
+        List<String> tagList = hasTags ? new ArrayList<>(tags) : null;
+
+        return new java.util.ArrayList<>(
+                articleRepository.searchHybrid(
+                                ts_query,
+                                tagList,
+                                hasTags ? tags.size() : 0
+                        )
+                        .stream()
+                        .map(this::mapToArticleResponse)
+                        .toList());
 
     }
 

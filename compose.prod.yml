@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+
+    container_name: article-app
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - postgres
+      - redis
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/article_db
+      SPRING_DATASOURCE_USERNAME: article_user
+      SPRING_DATASOURCE_PASSWORD: article_password
+
+      SPRING_DATA_REDIS_HOST: redis
+
+      # OAuth (must be set on EC2 / GitHub secrets ideally)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+  postgres:
+    image: postgres:17
+    container_name: article-postgres
+
+    environment:
+      POSTGRES_DB: article_db
+      POSTGRES_USER: article_user
+      POSTGRES_PASSWORD: article_password
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:8
+    container_name: article-redis
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

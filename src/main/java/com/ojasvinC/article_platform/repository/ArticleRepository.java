@@ -43,29 +43,27 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 //    List<Article> searchByText(@Param("query") String query);
 
     @Query(value = """
-    SELECT DISTINCT a.*
-        FROM articles a
-        LEFT JOIN article_tags at on a.id = at.article_id
-        LEFT JOIN tags t on at.tag_id = t.id
+            SELECT a.*
+            FROM articles a
             WHERE
-                (
-                    :query IS NULL
-                        OR
-                    a.search_vector @@ to_tsquery('english',:query)
-                )
+            (
+                :query IS NULL OR a.search_vector @@ to_tsquery('english', :query)
+            )
             AND
-                (
-                    :tagCount = 0
-                        OR
-                    t.name in (:tags)
+            (
+                :tagCount = 0 OR EXISTS (
+                    SELECT 1
+                    FROM article_tags at
+                    JOIN tags t ON t.id = at.tag_id
+                    WHERE at.article_id = a.id
+                    AND (:tagCount = 0 OR t.name IN (:tags))
                 )
+            )
             ORDER BY
-                CASE
-                    WHEN :query IS NULL
-                        THEN a.created_at
-                    ELSE ts_rank(a.search_vector,to_tsquery('english',:query))
-                    END
-            DESC
+            CASE
+                WHEN :query IS NULL THEN EXTRACT(EPOCH FROM a.created_at)
+                ELSE ts_rank(a.search_vector, to_tsquery('english', :query))
+            END DESC
     """, nativeQuery = true)
     List<Article> searchHybrid(
             @Param("query") String query,

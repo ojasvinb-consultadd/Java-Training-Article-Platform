@@ -3,7 +3,7 @@ spring:
     name: article-platform
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/article_db
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/article_db}
     username: article_user
     password: article_password
     driver-class-name: org.postgresql.Driver
@@ -43,3 +43,8 @@ spring:
             authorization-grant-type: authorization_code  # FIXED
 
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      time-to-live: 600000
