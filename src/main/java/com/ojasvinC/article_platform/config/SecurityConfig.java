@@ -2,6 +2,7 @@ package com.ojasvinC.article_platform.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
@@ -44,14 +45,19 @@ public class SecurityConfig {
 
                 // Authorization rules for endpoints
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/articles")
+                        .permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/articles/*")
+                        .permitAll()
 
                         // Public endpoints (no authentication required)
                         .requestMatchers(
                                 "/",
-                                "/articles",
-                                "/articles/*",
                                 "/oauth2/**",   // OAuth flow endpoints
-                                "/logged-out"
+                                "/logged-out",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**"
                         ).permitAll()
 
                         // Only ADMIN role can access admin APIs
@@ -81,7 +87,7 @@ public class SecurityConfig {
                         )
 
                         // After successful login, always redirect to "/"
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/login-complete", true)
                 )
 
                 // Logout configuration for local session only
