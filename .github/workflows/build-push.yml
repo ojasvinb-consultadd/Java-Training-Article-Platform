@@ -25,7 +25,7 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           IMAGE_TAG: latest
         run: |
-          IMAGE_URI=$ECR_REGISTRY/article-platform:latest
+          IMAGE_URI=$ECR_REGISTRY:latest
           
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
