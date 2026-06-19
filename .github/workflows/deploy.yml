@@ -20,7 +20,7 @@ jobs:
             docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
             
             # 2. Pull the new image
-            docker pull ${{ secrets.ECR_REGISTRY }}:latest
+            docker pull ${{ secrets.ECR_REGISTRY }}/article-platform:latest
             
             # 3. Restart containers
             # We use force-recreate to ensure the old container is nuked and the new image is used
