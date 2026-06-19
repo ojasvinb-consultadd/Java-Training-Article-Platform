@@ -2,11 +2,19 @@ spring:
   application:
     name: article-platform
 
+  # --- Database ---
   datasource:
+    # Local default: localhost, Production: injected via env var
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/article_db}
-    username: article_user
-    password: article_password
+    username: ${SPRING_DATASOURCE_USERNAME:article_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:article_password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
 
   jpa:
     hibernate:
@@ -20,11 +28,7 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
-  devtools:
-    restart:
-      exclude: db/migration # Note: Fixed dot to slash for classpath matching
-      enabled: false
-
+  # --- Security & OAuth ---
   security:
     oauth2:
       client:
@@ -38,29 +42,41 @@ spring:
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
 
-  # Connection settings ONLY
+  # --- Caching (Redis) ---
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
-
-  # Cache behavior settings LIVE HERE
+      connect-timeout: 5000
+      timeout: 5000
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false} # Default to false locally, set true in Prod
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   cache:
-    type: redis # Explicitly tells Spring to use Redis for caching
+    type: redis
     redis:
-      time-to-live: 2h # Global fallback TTL
+      time-to-live: 2h
       cache-null-values: false
       config:
         search:
-          time-to-live: 30m # 30 mins for search cache
+          time-to-live: 30m
         articles:
-          time-to-live: 1h  # 1 hour for articles cache
+          time-to-live: 1h
         allArticles:
-          time-to-live: 1h # 1 hour for articles cache
+          time-to-live: 1h
+
+# --- Infrastructure & Observability ---
+server:
+  forward-headers-strategy: native # Critical for production proxies/ALB
 
 logging:
   level:
     root: INFO
+    com.ojasvinC.article_platform: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %5level [%X{requestId}] %logger{36} : %msg%n"
 
@@ -68,8 +84,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, prometheus, metrics # Expose the prometheus scraping endpoint
+        include: health, info, prometheus, metrics
   metrics:
     distribution:
       percentiles-histogram:
-        search.query.latency: true # Forces Micrometer to create histogram buckets for your timer
+        search.query.latency: true
+        http.server.requests: true
