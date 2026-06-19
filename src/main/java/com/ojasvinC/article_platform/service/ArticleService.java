@@ -100,24 +100,24 @@ public class ArticleService {
     // key = the method parameter "id"
     @Cacheable(value = "articles", key="#id")
     public ArticleResponse getArticleById(Long id){
-//        Article article = articleRepository.findById(id)
-//                .orElseThrow(
-//                        () ->
-//                        {
-//                            return new NotFoundException("article not found")
-//                        });
+        Article article = articleRepository.findById(id)
+                .orElseThrow(
+                        () ->
+                        {
+                            return new NotFoundException("article not found");
+                        });
 
 
-        Article article = articleRepository.findByIdIncludingDeleted(id)
-                .orElseThrow(() -> {
-                    log.info("Article {} does not exist", id);
-                    return new NotFoundException("Article not found");
-                });
-
-        if (article.getDeletedAt() != null) {
-            log.info("Article {} exists but is soft deleted", id);
-            throw new NotFoundException("Article not found");
-        }
+//        Article article = articleRepository.findByIdIncludingDeleted(id)
+//                .orElseThrow(() -> {
+//                    log.info("Article {} does not exist", id);
+//                    return new NotFoundException("Article not found");
+//                });
+//
+//        if (article.getDeletedAt() != null) {
+//            log.info("Article {} exists but is soft deleted", id);
+//            throw new NotFoundException("Article not found");
+//        }
 
         return mapToArticleResponse(article);
     }
@@ -208,13 +208,15 @@ public class ArticleService {
 
     @Cacheable(
             value = "search",  // separate cache region
-            key = """
-                    #q + '-' +
-                        T(com.ojasvinC.article_platform.service.ArticleService)
-                            .normalizeTags(#tags == null ? new java.util.HashSet() : #tags).toString()
-                    """
+            key = "#q + '-' + #tags"
+//            key = """
+//                    #q + '-' +
+//                        T(com.ojasvinC.article_platform.service.ArticleService)
+//                            .normalizeTags(#tags == null ? new java.util.HashSet() : #tags).toString()
+//                    """
     )
     public List<ArticleResponse> searchArticles(String q, Set<String> tags){
+        log.info("SEARCH HIT DATABASE");
         boolean hasQuery = q != null && !q.trim().isEmpty();
         boolean hasTags = tags !=null && !tags.isEmpty();
 
