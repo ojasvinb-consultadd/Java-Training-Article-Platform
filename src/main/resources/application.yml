@@ -59,3 +59,13 @@ spring:
 logging:
   level:
     root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics # Expose the prometheus scraping endpoint
+  metrics:
+    distribution:
+      percentiles-histogram:
+        search.query.latency: true # Forces Micrometer to create histogram buckets for your timer

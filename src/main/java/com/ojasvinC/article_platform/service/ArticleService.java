@@ -17,6 +17,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -29,15 +31,18 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final MeterRegistry meterRegistry;
 
     public ArticleService(
             ArticleRepository articleRepository,
             UserRepository userRepository,
-            TagRepository tagRepository
+            TagRepository tagRepository,
+            MeterRegistry meterRegistry
     ){
         this.articleRepository = articleRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
+        this.meterRegistry = meterRegistry;
     }
 
     private ArticleResponse mapToArticleResponse(Article article){
@@ -208,43 +213,47 @@ public class ArticleService {
 
     @Cacheable(
             value = "search",  // separate cache region
-            key = "#q + '-' + #tags"
-//            key = """
-//                    #q + '-' +
-//                        T(com.ojasvinC.article_platform.service.ArticleService)
-//                            .normalizeTags(#tags == null ? new java.util.HashSet() : #tags).toString()
-//                    """
+            key = """
+                    #q + '-' +
+                        T(com.ojasvinC.article_platform.service.ArticleService)
+                            .normalizeTags(#tags == null ? new java.util.HashSet() : #tags).toString()
+                    """
     )
     public List<ArticleResponse> searchArticles(String q, Set<String> tags){
-        log.info("SEARCH HIT DATABASE");
         boolean hasQuery = q != null && !q.trim().isEmpty();
         boolean hasTags = tags !=null && !tags.isEmpty();
 
+        Timer searchTimer = Timer.builder("search.query.latency")
+                .description("Tracks the database execution latency for hybrid search")
+                .tag("has_text", String.valueOf(hasQuery))
+                .tag("has_tags", String.valueOf(hasTags))
+                .register(meterRegistry);
+        return searchTimer.record(() ->{
+            if (!hasTags && !hasQuery) {
+                return articleRepository.findAllByOrderByCreatedAtDesc()
+                        .stream()
+                        .map(this::mapToArticleResponse)
+                        .toList();
+            }
 
-        if (!hasTags && !hasQuery) {
-            return articleRepository.findAllByOrderByCreatedAtDesc()
+            String ts_query = null;
+
+            if(hasQuery){
+                ts_query = String.join(" & ",q.trim().split("\\s+"));
+            }
+
+            List<String> tagList = hasTags ? new ArrayList<>(tags) : null;
+
+            return articleRepository
+                    .searchHybrid(
+                            ts_query,
+                            tagList,
+                            hasTags ? tags.size() : 0
+                    )
                     .stream()
                     .map(this::mapToArticleResponse)
                     .toList();
-        }
-
-        String ts_query = null;
-
-        if(hasQuery){
-            ts_query = String.join(" & ",q.trim().split("\\s+"));
-        }
-
-        List<String> tagList = hasTags ? new ArrayList<>(tags) : null;
-
-        return articleRepository
-                .searchHybrid(
-                        ts_query,
-                        tagList,
-                        hasTags ? tags.size() : 0
-                )
-                .stream()
-                .map(this::mapToArticleResponse)
-                .toList();
+        });
     }
 
 
