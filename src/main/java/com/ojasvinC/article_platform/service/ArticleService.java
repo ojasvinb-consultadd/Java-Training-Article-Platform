@@ -82,7 +82,8 @@ public class ArticleService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "search", allEntries = true)
+            @CacheEvict(value = "search", allEntries = true),
+            @CacheEvict(value = "allArticles", allEntries = true) // Clears full list on creation
     })
     public ArticleResponse createArticle(CreateArticleRequest request, CustomUserPrincipal principal){
 
@@ -112,23 +113,11 @@ public class ArticleService {
                             return new NotFoundException("article not found");
                         });
 
-
-//        Article article = articleRepository.findByIdIncludingDeleted(id)
-//                .orElseThrow(() -> {
-//                    log.info("Article {} does not exist", id);
-//                    return new NotFoundException("Article not found");
-//                });
-//
-//        if (article.getDeletedAt() != null) {
-//            log.info("Article {} exists but is soft deleted", id);
-//            throw new NotFoundException("Article not found");
-//        }
-
         return mapToArticleResponse(article);
     }
 
+    @Cacheable(value = "allArticles") // Caches the entire collection scan
     public List<ArticleResponse> getAllArticles() {
-
         return articleRepository.findAll()
                 .stream()
                 .map(this::mapToArticleResponse)
@@ -138,7 +127,6 @@ public class ArticleService {
     // this method is already protected as in security config we have set
     // that only users with role ADMIN can access /admin endpoints
     public List<ArticleResponse> getAllArticlesIncludingDeleted() {
-
         return articleRepository.findAllIncludingDeleted()
                 .stream()
                 .map(this::mapToArticleResponse)
@@ -147,10 +135,10 @@ public class ArticleService {
 
     @Caching(evict = {
             @CacheEvict(value = "articles", key = "#id"),
-            @CacheEvict(value = "search", allEntries = true)
+            @CacheEvict(value = "search", allEntries = true),
+            @CacheEvict(value = "allArticles", allEntries = true)
     })
     public ArticleResponse updateArticle(Long id, UpdateArticleRequest request, CustomUserPrincipal principal){
-
 
         Article article = articleRepository.findByIdIncludingDeleted(id)
                 .orElseThrow(() -> {
@@ -166,9 +154,8 @@ public class ArticleService {
         Long currentUserId = principal.getId();
 
         boolean isOwner = article.getAuthor().getId().equals(currentUserId);
-//        boolean isAdmin = principal.getRole().name().equals("ADMIN");
 
-        if (!isOwner) { //add && !isAdmin to allow admin to edit articles
+        if (!isOwner) {
             throw new ForbiddenException("Not authorized to update this article");
         }
 
@@ -192,7 +179,8 @@ public class ArticleService {
 
     @Caching(evict = {
             @CacheEvict(value = "articles", key = "#id"),
-            @CacheEvict(value = "search", allEntries = true)
+            @CacheEvict(value = "search", allEntries = true),
+            @CacheEvict(value = "allArticles", allEntries = true)
     })
     public void deleteArticle(Long id, CustomUserPrincipal principal){
         Article article = articleRepository.findById(id)
@@ -212,7 +200,7 @@ public class ArticleService {
     }
 
     @Cacheable(
-            value = "search",  // separate cache region
+            value = "search",
             key = """
                     #q + '-' +
                         T(com.ojasvinC.article_platform.service.ArticleService)
@@ -255,6 +243,4 @@ public class ArticleService {
                     .toList();
         });
     }
-
-
 }
