@@ -18,10 +18,14 @@ services:
       # Redis / Valkey
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT}
+      REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED}
 
       # OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+      # Admin
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
 
 #      # AWS services (only if your application requires explicit values)
 #      AWS_REGION: ${AWS_REGION}

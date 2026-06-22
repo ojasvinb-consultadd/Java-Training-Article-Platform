@@ -45,6 +45,7 @@ public class SecurityConfig {
 
                 // Authorization rules for endpoints
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(HttpMethod.GET, "/articles")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/articles/*")
@@ -53,6 +54,9 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/articles/search")
                         .permitAll()
+                        .requestMatchers("/actuator/**")
+                        .permitAll()
+
 
                         // Public endpoints (no authentication required)
                         .requestMatchers(
@@ -66,6 +70,8 @@ public class SecurityConfig {
                         // Only ADMIN role can access admin APIs
                         .requestMatchers("/admin/**")
                         .hasRole("ADMIN")
+
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
                         // Everything else requires login
                         .anyRequest()
