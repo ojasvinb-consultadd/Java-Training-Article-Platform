@@ -107,17 +107,8 @@ public class ArticleService {
         return mapToArticleResponse(savedArticle);
     }
 
-    // cache name = "articles"
-    // key = the method parameter "id"
-    @Cacheable(value = "articles", key="#id")
-    public ArticleResponse getArticleById(Long id, @AuthenticationPrincipal CustomUserPrincipal user ){
-        Article article = articleRepository.findById(id)
-                .orElseThrow(
-                        () ->
-                        {
-                            return new NotFoundException("article not found");
-                        });
 
+    public ArticleResponse getArticleById(Long id, @AuthenticationPrincipal CustomUserPrincipal user ){
         sqsPublisher.publishViewEvent(
                 new ArticleEvent(
                         id,                                   // articleId
@@ -125,7 +116,15 @@ public class ArticleService {
                         "VIEW"                                // fixed type
                 )
         );
-
+        return getArticleByIdInternal(id);
+    }
+    // split into 2 to make sure sqs always runs and views are counted
+    // cache name = "articles"
+    // key = the method parameter "id"
+    @Cacheable(value = "articles", key="#id")
+    public ArticleResponse getArticleByIdInternal(Long id) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("article not found"));
 
         return mapToArticleResponse(article);
     }

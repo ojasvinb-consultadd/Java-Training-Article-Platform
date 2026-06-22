@@ -48,18 +48,23 @@ public class ArticleEventConsumer {
     @Scheduled(fixedDelay = 5000)
     public void pollSqs() {
 
+        System.out.println("Polling SQS..."); // DEBUG check if scheduler runs
+
         ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
-                .maxNumberOfMessages(5) // batch size
-                .waitTimeSeconds(2)     // short polling
+                .maxNumberOfMessages(5)
+                .waitTimeSeconds(2)
                 .build();
 
         List<Message> messages = sqsClient.receiveMessage(request).messages();
 
+        System.out.println("Messages received: " + messages.size()); // DEBUG
+
         for (Message message : messages) {
+            System.out.println("Message: " + message.body()); // DEBUG
+
             processMessage(message.body());
 
-            // IMPORTANT: delete message after processing
             sqsClient.deleteMessage(DeleteMessageRequest.builder()
                     .queueUrl(queueUrl)
                     .receiptHandle(message.receiptHandle())
