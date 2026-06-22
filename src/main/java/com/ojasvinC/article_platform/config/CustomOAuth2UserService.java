@@ -3,6 +3,7 @@ package com.ojasvinC.article_platform.config;
 import com.ojasvinC.article_platform.domain.User;
 import com.ojasvinC.article_platform.domain.UserRole;
 import com.ojasvinC.article_platform.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -16,6 +17,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
 
+    @Value("${spring.security.admin-email}")
+    private String adminEmail;
 
     public CustomOAuth2UserService(
             UserRepository userRepository
@@ -49,7 +52,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     newUser.setGoogleId(googleId);
                     newUser.setEmail(email);
                     newUser.setName(name);
-                    newUser.setRole(UserRole.USER);
+
+
+                    if( email != null && email.equalsIgnoreCase(adminEmail)){
+                        newUser.setRole(UserRole.ADMIN);
+                    }
+                    else {
+                        newUser.setRole(UserRole.USER);
+                    }
+
                     newUser.setCreatedAt(LocalDateTime.now());
 
                     return userRepository.save(newUser);

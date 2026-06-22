@@ -30,6 +30,7 @@ spring:
 
   # --- Security & OAuth ---
   security:
+    admin-email: ${ADMIN_EMAIL:ojasvin.b@consultadd.com}
     oauth2:
       client:
         registration:
@@ -59,15 +60,7 @@ spring:
   cache:
     type: redis
     redis:
-      time-to-live: 2h
       cache-null-values: false
-      config:
-        search:
-          time-to-live: 30m
-        articles:
-          time-to-live: 1h
-        allArticles:
-          time-to-live: 1h
 
 # --- Infrastructure & Observability ---
 server:
