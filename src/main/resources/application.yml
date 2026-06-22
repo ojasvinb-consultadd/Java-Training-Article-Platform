@@ -47,7 +47,7 @@ spring:
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: 6379
+      port: ${SPRING_DATA_REDIS_PORT:6379}
       connect-timeout: 5000
       timeout: 5000
       ssl:
@@ -83,3 +83,12 @@ management:
       percentiles-histogram:
         search.query.latency: true
         http.server.requests: true
+
+aws:
+  region: ${AWS_REGION:ap-south-1}
+
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+
+  sqs:
+    queue-url: ${SQS_QUEUE_URL}
