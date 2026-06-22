@@ -1,5 +1,6 @@
 spring:
   application:
+    version: 1,2
     name: article-platform
 
   # --- Database ---

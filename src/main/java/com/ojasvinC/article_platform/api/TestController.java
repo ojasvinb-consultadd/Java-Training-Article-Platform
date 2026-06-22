@@ -1,6 +1,7 @@
 package com.ojasvinC.article_platform.api;
 
 import com.ojasvinC.article_platform.config.CustomUserPrincipal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,6 +10,8 @@ import java.util.Map;
 
 @RestController
 public class TestController {
+    @Value("${spring.application.version}")
+    private String version;
 
     @GetMapping("/")
     public String home() {
@@ -34,7 +37,9 @@ public class TestController {
         return Map.of(
                 "id", user.getId(),
                 "email", user.getEmail(),
-                "role", user.getRole()
+                "role", user.getRole(),
+                "Version", version
+
         );
     }
 }
