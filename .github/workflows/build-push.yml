@@ -25,7 +25,15 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           IMAGE_TAG: latest
         run: |
-          IMAGE_URI=$ECR_REGISTRY/article-platform:latest
-          
-          docker build -t $IMAGE_URI .
-          docker push $IMAGE_URI
+          IMAGE_URI_LATEST=$ECR_REGISTRY/article-platform:latest
+          IMAGE_URI_SHA=$ECR_REGISTRY/article-platform:${{ github.sha }}
+
+          # build image
+          docker build -t $IMAGE_URI_LATEST .
+
+          # tag same image with commit SHA
+          docker tag $IMAGE_URI_LATEST $IMAGE_URI_SHA
+
+          # push both tags
+          docker push $IMAGE_URI_LATEST
+          docker push $IMAGE_URI_SHA
