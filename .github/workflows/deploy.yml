@@ -15,15 +15,20 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/article-platform
-            
-            # 1. Authenticate Docker to ECR
-            # This logs the EC2 instance into ECR for a temporary session
+
+            # 1. Login to ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
             docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-            
-            # 2. Pull the new image
-            docker pull ${{ secrets.ECR_REGISTRY }}/article-platform:latest
-            
-            # 3. Restart containers
-            # We use force-recreate to ensure the old container is nuked and the new image is used
+
+            # 2. Define IMAGE_URI (THIS is key part)
+            export IMAGE_URI=${{ secrets.ECR_REGISTRY }}/article-platform:latest
+
+            # 3. Restart stack
+            docker compose -f compose.prod.yml down
+            docker container prune -f
+
             docker compose -f compose.prod.yml up -d --force-recreate
+
+            # 4. Restart ngrok cleanly
+            pkill ngrok || true
+            nohup ngrok http 80 > ngrok.log 2>&1 &
