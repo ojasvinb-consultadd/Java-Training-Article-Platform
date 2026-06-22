@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 public class TestController {
-    @Value("${spring.application.version}")
+    @Value("${app.version}")
     private String version;
 
     @GetMapping("/")
