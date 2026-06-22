@@ -7,6 +7,7 @@ import com.ojasvinC.article_platform.domain.User;
 import com.ojasvinC.article_platform.dto.ArticleResponse;
 import com.ojasvinC.article_platform.dto.CreateArticleRequest;
 import com.ojasvinC.article_platform.dto.UpdateArticleRequest;
+import com.ojasvinC.article_platform.events.ArticleEvent;
 import com.ojasvinC.article_platform.exception.ForbiddenException;
 import com.ojasvinC.article_platform.exception.NotFoundException;
 import com.ojasvinC.article_platform.repository.ArticleRepository;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -32,17 +34,20 @@ public class ArticleService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final MeterRegistry meterRegistry;
+    private final SqsPublisher sqsPublisher;
 
     public ArticleService(
             ArticleRepository articleRepository,
             UserRepository userRepository,
             TagRepository tagRepository,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            SqsPublisher sqsPublisher
     ){
         this.articleRepository = articleRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.meterRegistry = meterRegistry;
+        this.sqsPublisher = sqsPublisher;
     }
 
     private ArticleResponse mapToArticleResponse(Article article){
@@ -105,13 +110,22 @@ public class ArticleService {
     // cache name = "articles"
     // key = the method parameter "id"
     @Cacheable(value = "articles", key="#id")
-    public ArticleResponse getArticleById(Long id){
+    public ArticleResponse getArticleById(Long id, @AuthenticationPrincipal CustomUserPrincipal user ){
         Article article = articleRepository.findById(id)
                 .orElseThrow(
                         () ->
                         {
                             return new NotFoundException("article not found");
                         });
+
+        sqsPublisher.publishViewEvent(
+                new ArticleEvent(
+                        id,                                   // articleId
+                        user != null ? user.getId() : null,   // userId (optional)
+                        "VIEW"                                // fixed type
+                )
+        );
+
 
         return mapToArticleResponse(article);
     }

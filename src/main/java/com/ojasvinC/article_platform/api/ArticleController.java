@@ -33,8 +33,11 @@ public class ArticleController {
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public ArticleResponse getArticleById(@PathVariable Long id){
-        return articleService.getArticleById(id);
+    public ArticleResponse getArticleById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ){
+        return articleService.getArticleById(id, principal);
     }
 
     @GetMapping
