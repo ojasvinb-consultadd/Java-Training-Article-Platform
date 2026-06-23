@@ -64,7 +64,13 @@ spring:
 
 # --- Infrastructure & Observability ---
 server:
-  forward-headers-strategy: native # Critical for production proxies/ALB
+  forward-headers-strategy: native
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+        http-only: true
 
 logging:
   level:
@@ -96,3 +102,4 @@ aws:
 
 app:
   version: 1.2
+  frontend-url: https://article-platform-frontend.vercel.app

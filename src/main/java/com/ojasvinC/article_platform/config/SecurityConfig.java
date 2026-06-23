@@ -1,5 +1,6 @@
 package com.ojasvinC.article_platform.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -8,6 +9,10 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.*;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -22,6 +27,9 @@ public class SecurityConfig {
     // Holds Google client registration details from application.yml
     // (client-id, secret, scopes, redirect-uri, etc.)
     private final ClientRegistrationRepository clientRegistrationRepository;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     public SecurityConfig(
             CustomOAuth2UserService customOAuth2UserService,
@@ -42,6 +50,7 @@ public class SecurityConfig {
                 // - We are not using server-rendered forms
                 // - Testing via Postman/frontend
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Authorization rules for endpoints
                 .authorizeHttpRequests(auth -> auth
@@ -96,7 +105,7 @@ public class SecurityConfig {
                         )
 
                         // After successful login, always redirect to "/"
-                        .defaultSuccessUrl("/login-complete", true)
+                        .defaultSuccessUrl(frontendUrl + "/login-complete", true)
                 )
 
                 // Logout configuration for local session only
@@ -115,10 +124,24 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
 
                         // Redirect after logout
-                        .logoutSuccessUrl("/logged-out")
+                        .logoutSuccessUrl(frontendUrl + "/login")
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(frontendUrl));
+        config.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     // Customizes OAuth2 authorization request BEFORE redirecting to Google
