@@ -4,6 +4,7 @@ import com.ojasvinC.article_platform.config.CustomUserPrincipal;
 import com.ojasvinC.article_platform.domain.Article;
 import com.ojasvinC.article_platform.domain.Tag;
 import com.ojasvinC.article_platform.domain.User;
+import com.ojasvinC.article_platform.domain.UserRole;
 import com.ojasvinC.article_platform.dto.ArticleResponse;
 import com.ojasvinC.article_platform.dto.CreateArticleRequest;
 import com.ojasvinC.article_platform.dto.UpdateArticleRequest;
@@ -78,6 +79,7 @@ public class ArticleService {
         return updatedTags;
     }
 
+    //do not delete used by search redis
     public static List<String> normalizeTags(Set<String> tags) {
         if (tags == null) return List.of(); // no tags → empty immutable list
 
@@ -118,6 +120,8 @@ public class ArticleService {
         );
         return getArticleByIdInternal(id);
     }
+
+
     // split into 2 to make sure sqs always runs and views are counted
     // cache name = "articles"
     // key = the method parameter "id"
@@ -139,8 +143,27 @@ public class ArticleService {
 
     // this method is already protected as in security config we have set
     // that only users with role ADMIN can access /admin endpoints
-    public List<ArticleResponse> getAllArticlesIncludingDeleted() {
+    public List<ArticleResponse> getAllArticlesIncludingDeleted(CustomUserPrincipal principal) {
+        boolean isAdmin = principal.getRole().equals(UserRole.ADMIN);
+
+        if (!isAdmin) {
+            throw new ForbiddenException("Not authorized");
+        }
+
         return articleRepository.findAllIncludingDeleted()
+                .stream()
+                .map(this::mapToArticleResponse)
+                .toList();
+    }
+
+    public List<ArticleResponse> getDeletedArticles(CustomUserPrincipal principal) {
+        boolean isAdmin = principal.getRole().equals(UserRole.ADMIN);
+
+        if (!isAdmin) {
+            throw new ForbiddenException("Not authorized");
+        }
+
+        return articleRepository.findAllSoftDeleted()
                 .stream()
                 .map(this::mapToArticleResponse)
                 .toList();
@@ -202,7 +225,7 @@ public class ArticleService {
         Long currentUserId = principal.getId();
 
         boolean isOwner = article.getAuthor().getId().equals(currentUserId);
-        boolean isAdmin = principal.getRole().name().equals("ADMIN");
+        boolean isAdmin = principal.getRole().equals(UserRole.ADMIN);
 
         if (!isOwner && !isAdmin) {
             throw new ForbiddenException("Not authorized to delete this article");
@@ -210,6 +233,27 @@ public class ArticleService {
 
         article.setDeletedAt(LocalDateTime.now());
         articleRepository.save(article);
+    }
+
+
+    @Caching(evict = {
+            @CacheEvict(value = "articles", key = "#id"),
+            @CacheEvict(value = "search", allEntries = true),
+            @CacheEvict(value = "allArticles", allEntries = true)
+    })
+    public void hardDeleteArticle(Long id, CustomUserPrincipal principal){
+        if(!principal.getRole().equals(UserRole.ADMIN)){
+            throw new ForbiddenException("not allowed to access this endpoint");
+        }
+
+        Article article = articleRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> {
+                    return new NotFoundException("article doesnt exist");
+                });
+
+        articleRepository.delete(article);
+
+        log.info("Article {} permanently deleted by admin id {}", id, principal.getId());
     }
 
     @Cacheable(

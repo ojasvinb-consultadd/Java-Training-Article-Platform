@@ -32,15 +32,12 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     )
     Optional<Article> findByIdIncludingDeleted(@Param("id") Long id);
 
+    @Query(value = """
+        SELECT * FROM articles
+        WHERE deleted_at IS NOT NULL
+        """, nativeQuery = true)
+    List<Article> findAllSoftDeleted();
 
-//    @Query(value = """
-//    SELECT *
-//        FROM articles
-//            WHERE search_vector @@ to_tsquery('english', :query)
-//        ORDER BY ts_rank(search_vector, to_tsquery('english', :query))
-//            DESC
-//    """, nativeQuery = true)
-//    List<Article> searchByText(@Param("query") String query);
 
     @Query(value = """
             SELECT a.*
